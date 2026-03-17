@@ -30,6 +30,11 @@ Apply the schema:
 psql -U postgres -d careercraft_ai -f "sql.txt"
 ```
 
+## One-Command Setup (Windows PowerShell)
+```powershell
+.\scripts\setup.ps1
+```
+
 ## 2) Backend Setup
 Install dependencies:
 ```bash
@@ -82,4 +87,3 @@ This uses the Open Skills API to fetch:
 
 ## Scripts
 - Seed catalog: `backend/scripts/seed_catalog.py`
-
