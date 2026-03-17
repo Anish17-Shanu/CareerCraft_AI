@@ -1,0 +1,80 @@
+CREATE TABLE questions (
+    question_id SERIAL PRIMARY KEY,
+    question_text TEXT NOT NULL,
+    category TEXT,           -- academic, skill, interest, personality, goal
+    trait TEXT,              -- what this question measures (e.g. programming)
+    response_type TEXT,      -- scale, mcq, text, skill_select
+    difficulty INT,          -- adaptive complexity
+    active BOOLEAN DEFAULT TRUE
+);
+
+CREATE TABLE question_metadata (
+    question_id INT PRIMARY KEY REFERENCES questions(question_id),
+    required BOOLEAN DEFAULT TRUE,
+    why TEXT,
+    min_label TEXT,
+    max_label TEXT,
+    evidence_high TEXT,
+    evidence_low TEXT,
+    placeholder TEXT
+);
+
+CREATE TABLE question_options (
+    option_id SERIAL PRIMARY KEY,
+    question_id INT REFERENCES questions(question_id),
+    label TEXT,
+    value TEXT,
+    detail TEXT,
+    traits JSONB
+);
+
+
+CREATE TABLE careers (
+    career_id SERIAL PRIMARY KEY,
+    career_name TEXT UNIQUE NOT NULL,
+    domain TEXT,
+    description TEXT
+);
+
+CREATE TABLE career_traits (
+    career_id INT REFERENCES careers(career_id),
+    trait TEXT,
+    required_level FLOAT,
+    PRIMARY KEY (career_id, trait)
+);
+
+CREATE TABLE career_tags (
+    career_id INT REFERENCES careers(career_id),
+    tag TEXT,
+    PRIMARY KEY (career_id, tag)
+);
+
+CREATE TABLE career_reasons (
+    career_id INT REFERENCES careers(career_id),
+    reason_order INT,
+    reason_text TEXT,
+    PRIMARY KEY (career_id, reason_order)
+);
+
+CREATE TABLE career_roles (
+    career_id INT REFERENCES careers(career_id),
+    role_order INT,
+    role_title TEXT,
+    PRIMARY KEY (career_id, role_order)
+);
+
+CREATE TABLE career_roadmaps (
+    career_id INT REFERENCES careers(career_id),
+    step_order INT,
+    description TEXT,
+    PRIMARY KEY (career_id, step_order)
+);
+
+
+
+-- WORKFLOW
+-- Questions + Options + Metadata -> Trait Signals
+--       |
+-- Career Traits + Roadmaps + Reasons
+--       |
+-- Explainable Recommendations + External Fallback

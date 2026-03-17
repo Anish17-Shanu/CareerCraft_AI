@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>CareerCraft AI</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" href="styles.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Fraunces:wght@400;600&family=Sora:wght@300;400;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+<div class="bg-aurora"></div>
+<div class="bg-grid"></div>
+
+<main id="app">
+    <header class="hero">
+        <div class="badge">CareerCraft AI</div>
+        <h1>Build your career map from who you are.</h1>
+        <p>
+            Answer a deep, flexible questionnaire. We translate your interests, skills,
+            and work style into clear career paths and explain why each one fits.
+        </p>
+        <div class="hero-meta">
+            <div>
+                <div class="meta-label">Question Bank</div>
+                <div class="meta-value">30+ signals</div>
+            </div>
+            <div>
+                <div class="meta-label">Paths</div>
+                <div class="meta-value">Technical + Non-Technical</div>
+            </div>
+            <div>
+                <div class="meta-label">Outcome</div>
+                <div class="meta-value">Reasoned career matches</div>
+            </div>
+        </div>
+    </header>
+
+    <section class="panel">
+        <div class="progress">
+            <div class="progress-label" id="progress-label">Question 1 of 1</div>
+            <div class="progress-bar">
+                <div class="progress-fill" id="progress-fill"></div>
+            </div>
+        </div>
+
+        <div class="question-card" id="question-card">
+            <div class="question-title" id="question-title"></div>
+            <div class="question-why" id="question-why"></div>
+            <div class="question-body" id="question-body"></div>
+        </div>
+
+        <div class="nav">
+            <button class="btn ghost" id="back-btn">Back</button>
+            <button class="btn primary" id="next-btn">Next</button>
+        </div>
+    </section>
+
+    <section class="panel results hidden" id="result-panel">
+        <div class="result-header">
+            <h2>Your CareerCraft Map</h2>
+            <p id="result-summary"></p>
+        </div>
+        <div class="trait-grid" id="trait-grid"></div>
+        <div class="result-list" id="result-list"></div>
+        <div class="external hidden" id="external-panel">
+            <h3>External Suggestions</h3>
+            <p>When your answers are uncertain, we pull extra ideas from a free, public skills database.</p>
+            <div class="external-list" id="external-list"></div>
+            <div class="external-section">
+                <h4>Related Skills</h4>
+                <div class="external-list" id="external-skills"></div>
+            </div>
+            <div class="external-section">
+                <h4>Job Families</h4>
+                <div class="external-list" id="external-jobs"></div>
+            </div>
+        </div>
+    </section>
+</main>
+
+<script src="app.js"></script>
+</body>
+</html>
