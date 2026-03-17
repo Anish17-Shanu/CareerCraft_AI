@@ -9,9 +9,13 @@ def create_app():
 
     from routes.catalog_routes import catalog_bp
     from routes.external_routes import external_bp
+    from routes.recommendation_routes import recommendation_bp
+    from routes.question_routes import question_bp
 
     app.register_blueprint(catalog_bp)
     app.register_blueprint(external_bp)
+    app.register_blueprint(recommendation_bp)
+    app.register_blueprint(question_bp)
 
     return app
 

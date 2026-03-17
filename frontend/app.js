@@ -455,6 +455,7 @@ const fallbackCareers = [
 
 let questions = [];
 let careers = [];
+let backendAvailable = false;
 
 const state = {
     index: 0,
@@ -462,7 +463,9 @@ const state = {
     traitSums: {},
     traitCounts: {},
     evidence: {},
-    selectedTags: []
+    selectedTags: [],
+    currentQuestion: null,
+    history: []
 };
 
 const questionTitle = document.getElementById("question-title");
@@ -507,7 +510,8 @@ function renderProgress() {
 }
 
 function renderQuestion() {
-    const q = questions[state.index];
+    const q = state.currentQuestion || questions[state.index];
+    if (!q) return;
     renderProgress();
     questionTitle.textContent = q.text;
     questionWhy.textContent = `Why we ask: ${q.why}`;
@@ -544,6 +548,9 @@ function renderQuestion() {
     if (q.type === "multi") {
         const chips = document.createElement("div");
         chips.className = "chips";
+        if (q.id === "interests" || q.options?.length > 8) {
+            chips.classList.add("scrollable");
+        }
         const selected = new Set(savedAnswer || []);
         q.options.forEach((option) => {
             const chip = document.createElement("div");
@@ -651,15 +658,19 @@ function rebuildTraitScores() {
 function computeFit(career) {
     const traitEntries = Object.entries(career.traits);
     let score = 0;
+    const weights = career.weights || {};
+    let weightTotal = 0;
     traitEntries.forEach(([trait, required]) => {
         const userValue = getTraitScore(trait);
-        score += Math.max(0, 1 - Math.abs(required - userValue));
+        const weight = weights[trait] || 1;
+        score += Math.max(0, 1 - Math.abs(required - userValue)) * weight;
+        weightTotal += weight;
     });
 
     if (state.selectedTags.some((tag) => career.tags.includes(tag))) {
         score += 0.3;
     }
-    return score / (traitEntries.length + 0.3);
+    return score / (Math.max(weightTotal, traitEntries.length) + 0.3);
 }
 
 function buildReasons(career) {
@@ -683,7 +694,11 @@ function buildReasons(career) {
     return reasons.slice(0, 4);
 }
 
-function renderResults() {
+async function renderResults() {
+    if (backendAvailable) {
+        await renderResultsFromBackend();
+        return;
+    }
     rebuildTraitScores();
     const preference = state.answers.path || "both";
     let filtered = careers;
@@ -759,6 +774,84 @@ function renderResults() {
     document.getElementById("question-card").classList.add("hidden");
     document.querySelector(".nav").classList.add("hidden");
     document.querySelector(".progress").classList.add("hidden");
+}
+
+async function renderResultsFromBackend() {
+    try {
+        const res = await fetch("http://localhost:5000/recommendations/score", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ answers: state.answers, limit: 6, offset: 0 }),
+        });
+        if (!res.ok) throw new Error("recommendation failed");
+        const payload = await res.json();
+
+        resultSummary.textContent =
+            "Based on your answers, here are the career paths that match your signals and interests.";
+
+        const summaryRes = await fetch("http://localhost:5000/profile/summary", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ answers: state.answers }),
+        });
+        const summary = summaryRes.ok ? await summaryRes.json() : { traits: [] };
+
+        traitGrid.innerHTML = "";
+        (summary.traits || []).slice(0, 8).forEach((item) => {
+            const card = document.createElement("div");
+            card.className = "trait-card";
+            card.innerHTML = `
+                <strong>${item.trait.replace(/_/g, " ")}</strong>
+                <div class="trait-bar"><span style="width:${Math.round(item.score * 100)}%"></span></div>
+            `;
+            traitGrid.appendChild(card);
+        });
+
+        resultList.innerHTML = "";
+        (payload.results || []).forEach((career) => {
+            const card = document.createElement("div");
+            card.className = "result-card";
+            card.innerHTML = `
+                <div>
+                    <h3>${career.name}</h3>
+                    <div class="result-meta">
+                        <span class="pill">${career.path.replace("-", " ")}</span>
+                        <span>Fit Score: ${(career.fit_score * 100).toFixed(0)}%</span>
+                    </div>
+                </div>
+                <p>${career.summary || ""}</p>
+                <div>
+                    <strong>Why this fits you</strong>
+                    <ul class="list">${(career.reasons || []).map((r) => `<li>${r}</li>`).join("")}</ul>
+                </div>
+                <div>
+                    <strong>Example roles</strong>
+                    <ul class="list">${(career.roles || []).map((r) => `<li>${r}</li>`).join("")}</ul>
+                </div>
+                <div>
+                    <strong>Next steps</strong>
+                    <ul class="list">${(career.roadmap || []).map((r) => `<li>${r}</li>`).join("")}</ul>
+                </div>
+            `;
+            resultList.appendChild(card);
+        });
+
+        const topScore = payload.results?.length ? payload.results[0].fit_score : 0;
+        if (topScore < 0.55) {
+            loadExternalSuggestions().then(renderExternalSuggestions);
+        } else {
+            externalPanel.classList.add("hidden");
+            externalList.innerHTML = "";
+        }
+
+        resultPanel.classList.remove("hidden");
+        document.getElementById("question-card").classList.add("hidden");
+        document.querySelector(".nav").classList.add("hidden");
+        document.querySelector(".progress").classList.add("hidden");
+    } catch (error) {
+        backendAvailable = false;
+        renderResults();
+    }
 }
 
 function getInterestLabel(value) {
@@ -848,20 +941,30 @@ async function loadCatalog() {
         const data = await res.json();
         questions = data.questions || [];
         careers = data.careers || [];
+        backendAvailable = true;
     } catch (error) {
         questions = fallbackQuestions;
         careers = fallbackCareers;
+        backendAvailable = false;
     }
 
     if (!questions.length || !careers.length) {
         questions = fallbackQuestions;
         careers = fallbackCareers;
+        backendAvailable = false;
     }
 }
 
 nextBtn.addEventListener("click", () => {
-    const q = questions[state.index];
+    const q = state.currentQuestion || questions[state.index];
     if (q.required && !state.answers[q.id]) return;
+
+    if (backendAvailable) {
+        fetchNextQuestion().then((done) => {
+            if (done) renderResults();
+        });
+        return;
+    }
 
     if (state.index < questions.length - 1) {
         state.index += 1;
@@ -872,9 +975,45 @@ nextBtn.addEventListener("click", () => {
 });
 
 backBtn.addEventListener("click", () => {
+    if (backendAvailable) {
+        state.history.pop();
+        state.currentQuestion = state.history[state.history.length - 1] || null;
+        renderQuestion();
+        return;
+    }
     if (state.index === 0) return;
     state.index -= 1;
     renderQuestion();
 });
 
-loadCatalog().then(() => renderQuestion());
+async function fetchNextQuestion() {
+    try {
+        const res = await fetch("http://localhost:5000/questions/next", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ answers: state.answers }),
+        });
+        if (!res.ok) throw new Error("question fetch failed");
+        const data = await res.json();
+        if (data.status === "completed") {
+            return true;
+        }
+        state.currentQuestion = data;
+        state.history.push(data);
+        renderQuestion();
+        return false;
+    } catch (error) {
+        backendAvailable = false;
+        state.currentQuestion = null;
+        renderQuestion();
+        return false;
+    }
+}
+
+loadCatalog().then(() => {
+    renderQuestion();
+    if (backendAvailable) {
+        state.history = [];
+        fetchNextQuestion();
+    }
+});

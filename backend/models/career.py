@@ -19,6 +19,7 @@ class CareerTrait(db.Model):
     )
     trait = db.Column(db.Text, primary_key=True)
     required_level = db.Column(db.Float)
+    weight = db.Column(db.Float, default=1.0)
 
 
 class CareerTag(db.Model):

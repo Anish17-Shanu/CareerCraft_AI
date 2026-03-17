@@ -1,7 +1,10 @@
 import json
+from datetime import datetime, timedelta
 import urllib.parse
 import urllib.request
 
+from database import db
+from models.external_cache import ExternalCache
 
 BASE_URL = "http://api.dataatwork.org/v1"
 
@@ -10,6 +13,28 @@ def _fetch(url, timeout=6):
     request = urllib.request.Request(url, headers={"User-Agent": "CareerCraftAI/1.0"})
     with urllib.request.urlopen(request, timeout=timeout) as response:
         return json.loads(response.read().decode("utf-8"))
+
+
+def _cache_get(cache_key):
+    entry = db.session.get(ExternalCache, cache_key)
+    if not entry:
+        return None
+    if not entry.fetched_at:
+        return None
+    if entry.fetched_at + timedelta(seconds=entry.ttl_seconds) < datetime.utcnow():
+        return None
+    return entry.response_json
+
+
+def _cache_set(cache_key, payload, ttl_seconds=86400):
+    entry = db.session.get(ExternalCache, cache_key)
+    if not entry:
+        entry = ExternalCache(cache_key=cache_key)
+        db.session.add(entry)
+    entry.response_json = payload
+    entry.fetched_at = datetime.utcnow()
+    entry.ttl_seconds = ttl_seconds
+    db.session.commit()
 
 
 def _extract_jobs(payload):
@@ -30,13 +55,19 @@ def fetch_job_suggestions(query, limit=8):
     contains_url = f"{BASE_URL}/jobs/autocomplete?contains={safe_query}"
     begins_url = f"{BASE_URL}/jobs/autocomplete?begins_with={safe_query}"
 
-    try:
-        data = _fetch(contains_url)
-    except Exception:
+    cache_key = f"jobs:{query.lower()}:{limit}"
+    cached = _cache_get(cache_key)
+    if cached is not None:
+        data = cached
+    else:
         try:
-            data = _fetch(begins_url)
+            data = _fetch(contains_url)
         except Exception:
-            return []
+            try:
+                data = _fetch(begins_url)
+            except Exception:
+                return []
+        _cache_set(cache_key, data)
 
     jobs = _extract_jobs(data)
     if not jobs:
@@ -61,10 +92,16 @@ def fetch_related_skills(job_id, limit=8):
     if not job_id:
         return []
     url = f"{BASE_URL}/jobs/{job_id}/related_skills"
-    try:
-        data = _fetch(url)
-    except Exception:
-        return []
+    cache_key = f"skills:{job_id}:{limit}"
+    cached = _cache_get(cache_key)
+    if cached is not None:
+        data = cached
+    else:
+        try:
+            data = _fetch(url)
+        except Exception:
+            return []
+        _cache_set(cache_key, data)
 
     skills = []
     if isinstance(data, dict):
@@ -89,10 +126,16 @@ def fetch_related_jobs(job_id, limit=8):
     if not job_id:
         return []
     url = f"{BASE_URL}/jobs/{job_id}/related_jobs"
-    try:
-        data = _fetch(url)
-    except Exception:
-        return []
+    cache_key = f"related_jobs:{job_id}:{limit}"
+    cached = _cache_get(cache_key)
+    if cached is not None:
+        data = cached
+    else:
+        try:
+            data = _fetch(url)
+        except Exception:
+            return []
+        _cache_set(cache_key, data)
 
     jobs = _extract_jobs(data)
     parsed = []

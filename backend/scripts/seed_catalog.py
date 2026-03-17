@@ -68,6 +68,13 @@ def _generate_reasons(career_data):
     return reasons[:3]
 
 
+def _weight_for_trait(trait):
+    high = {"coding", "data", "systems", "design", "marketing", "business", "communication"}
+    if trait in high:
+        return 1.3
+    return 1.0
+
+
 def _ensure_career(career_data):
     career = Career.query.filter_by(career_name=career_data["name"]).first()
     if not career:
@@ -89,6 +96,7 @@ def _ensure_career(career_data):
                 career_id=career.career_id,
                 trait=trait,
                 required_level=level,
+                weight=_weight_for_trait(trait),
             )
         )
 

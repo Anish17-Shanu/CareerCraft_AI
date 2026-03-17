@@ -40,6 +40,7 @@ CREATE TABLE career_traits (
     career_id INT REFERENCES careers(career_id),
     trait TEXT,
     required_level FLOAT,
+    weight FLOAT DEFAULT 1.0,
     PRIMARY KEY (career_id, trait)
 );
 
@@ -61,6 +62,13 @@ CREATE TABLE career_roles (
     role_order INT,
     role_title TEXT,
     PRIMARY KEY (career_id, role_order)
+);
+
+CREATE TABLE external_cache (
+    cache_key TEXT PRIMARY KEY,
+    response_json JSONB,
+    fetched_at TIMESTAMP,
+    ttl_seconds INT DEFAULT 86400
 );
 
 CREATE TABLE career_roadmaps (
