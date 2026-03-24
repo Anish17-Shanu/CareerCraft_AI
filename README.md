@@ -41,8 +41,15 @@ Install dependencies:
 pip install -r "backend/requirements.txt"
 ```
 
-Update connection string if needed:
-- `backend/config.py`
+Create your environment file:
+```bash
+copy backend\.env.example backend\.env
+```
+
+Then update:
+- `DATABASE_URL`
+- `SECRET_KEY`
+- `CORS_ORIGINS`
 
 Seed the catalog:
 ```bash
@@ -52,6 +59,11 @@ python "backend/scripts/seed_catalog.py"
 Start the backend:
 ```bash
 python "backend/app.py"
+```
+
+Production entrypoint:
+```bash
+gunicorn --bind 0.0.0.0:5000 wsgi:app
 ```
 
 ## 3) Frontend Setup
@@ -81,9 +93,12 @@ This uses the Open Skills API to fetch:
 
 ## Common Troubleshooting
 - If the backend can't connect to Postgres, confirm:
-  - Host/port are correct in `backend/config.py`
+  - `DATABASE_URL` is correct in `backend/.env`
   - The DB exists and the schema is applied
 - If external fallback fails, check your internet connection
+
+## Health Check
+- `GET /health` returns service and database status
 
 ## Scripts
 - Seed catalog: `backend/scripts/seed_catalog.py`
