@@ -1,3 +1,5 @@
+"""CareerCraft AI backend created by Anish Kumar."""
+
 from flask import Flask, jsonify
 from flask_cors import CORS
 from sqlalchemy import text
