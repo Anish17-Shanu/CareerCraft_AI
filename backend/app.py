@@ -1,4 +1,4 @@
-"""CareerCraft AI backend created by Anish Kumar."""
+"""CareerCraft AI backend created by ANISH KUMAR."""
 
 from flask import Flask, jsonify
 from flask_cors import CORS

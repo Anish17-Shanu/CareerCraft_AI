@@ -2,8 +2,8 @@
 
 ## Creator
 
-This project was created, written, and maintained by **Anish Kumar (ANISH KUMAR)**.
-All primary documentation in this README is presented as the work of **Anish Kumar**.
+This project was created, written, and maintained by **ANISH KUMAR**.
+All primary documentation in this README is presented as the work of **ANISH KUMAR**.
 
 CareerCraft AI is a full-stack career exploration system that collects rich questionnaire signals and produces explainable career recommendations. It supports a database-backed catalog and a free external fallback (Open Skills API) for uncertain scenarios.
 
